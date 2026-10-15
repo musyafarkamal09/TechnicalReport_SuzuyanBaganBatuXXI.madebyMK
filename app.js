@@ -200,8 +200,8 @@ function vDash(){Promise.all([api('dashboard'),api('ats_list')]).then(function(r
  if(!rr){dAc();dChart()}tickCd();dExtra(d,fl)}).catch(err)}
 
 /* ---- TAMBAHAN DASHBOARD v2: info bioskop + kursi animasi, slider Teori Management XXI, pencarian semua laporan (tidak mengubah fungsi lama) ---- */
-/* Ubah jumlah kursi cukup di sini (sesuaikan dengan kapasitas studio Suzuya Bagan Batu XXI). */
-var STUDIOS=[['Studio 1',214],['Studio 2',154]],DQI=[],DQP=null,RPC={t:0,busy:null,items:[],fail:0};
+/* Ubah jumlah kursi cukup di sini (2 studio, masing-masing 210 kursi). */
+var STUDIOS=[['Studio 1',210],['Studio 2',210]],DQI=[],DQP=null,RPC={t:0,busy:null,items:[],fail:0};
 /* Materi Teori Management XXI (dari file zip). Format: [judul, sub, [[judul kartu, isi],...]]. Hapus satu baris untuk menghilangkan satu slide. */
 var KB=[
 ['Core Values 4P','adalah landasan yang harus kita miliki, untuk berkarir di perusahaan.',[
