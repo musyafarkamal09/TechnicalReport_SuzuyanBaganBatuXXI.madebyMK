@@ -46,13 +46,19 @@ function api0(a,p){
 
 /* Cache baca singkat (60 dtk): pindah halaman/kembali ke dashboard tidak memanggil server lagi. Dikosongkan otomatis setiap ada simpan/hapus/login/logout. */
 var RC={},RCG=0,RCT=60000,RCA=['dashboard','ats_list','ann_list','gloss_list','rep_list','filmrep_list','store_list','usr_list','team'];
+/* Ulangi otomatis (maks 2x) bila koneksi ke Apps Script gagal sesaat. Hanya untuk aksi baca; simpan/hapus tidak diulang agar tidak terjadi data ganda. */
+function apiR(a,p){var w=/_(save|del)$|^(changepw|usr_reset|photo_done|login|logout|rep_zip|rep_export)$/.test(a),base=Object.assign({},p||{}),n=0;
+ function go(){return api0(a,Object.assign({},base)).catch(function(e){
+  if(w||n>=2||navigator.onLine===false||!/Gagal terhubung|waktu habis|Respons server tidak valid/i.test((e&&e.message)||''))throw e;
+  n++;return new Promise(function(r){setTimeout(r,n*1500)}).then(go)})}
+ return go()}
 function rcClone(v){return v===undefined?v:JSON.parse(JSON.stringify(v))}
 function api(a,p){
- if(RCA.indexOf(a)<0)return api0(a,p).then(function(d){if(/_(save|del)$|^(changepw|usr_reset|photo_done|login|logout)$/.test(a)){RC={};RCG++}return d});
+ if(RCA.indexOf(a)<0)return apiR(a,p).then(function(d){if(/_(save|del)$|^(changepw|usr_reset|photo_done|login|logout)$/.test(a)){RC={};RCG++}return d});
  var q=Object.assign({},p||{});delete q.quiet;var k=a+'|'+JSON.stringify(q),e=RC[k],g=RCG;
  if(e&&e.pr)return e.pr.then(rcClone);
  if(e&&Date.now()-e.t<RCT)return Promise.resolve(rcClone(e.v));
- var pr=api0(a,p).then(function(d){if(g===RCG)RC[k]={t:Date.now(),v:rcClone(d)};return d},function(er){if(RC[k]&&RC[k].pr)delete RC[k];throw er});
+ var pr=apiR(a,p).then(function(d){if(g===RCG)RC[k]={t:Date.now(),v:rcClone(d)};return d},function(er){if(RC[k]&&RC[k].pr)delete RC[k];throw er});
  RC[k]={pr:pr.then(function(d){return d}),t:0};
  return pr;
 }
@@ -818,11 +824,11 @@ function sum(t,r){var d=r.data;return t==='issue'?esc(r.title)+'<br><small>'+esc
 function fabMove(){var b=$('ra');if(!b)return;if(window.innerWidth>820){b.classList.remove('fab');return}b.classList.add('fab');if(b.parentNode!==document.body)document.body.appendChild(b);else document.body.appendChild(b)}if(!window.__fabrz){window.__fabrz=1;window.addEventListener('resize',function(){var b=document.getElementById('ra');if(!b)return;if(window.innerWidth>820){b.classList.remove('fab');var br=document.querySelector('#view .bar');if(br&&b.parentNode!==br)br.appendChild(b)}else{b.classList.add('fab');document.body.appendChild(b)}})}
 function vRep(t){var s=ST[t]=ST[t]||{page:1,q:'',from:'',to:'',status:''},c=T[t];
  $('view').innerHTML='<h2>'+c.label+'</h2><div class="bar"><input id="rq" type="search" placeholder="Cari nomor, judul, lokasi, atau pelapor" value="'+esc(s.q)+'"><label class="fl">Dari tanggal<input type="date" id="rf" value="'+s.from+'"></label><label class="fl">Sampai tanggal<input type="date" id="rt" value="'+s.to+'"></label>'+(t==='work'||t==='issue'?'<select id="rs"><option value="">Semua status</option>'+(t==='issue'?IST:WS).map(function(o){return '<option'+(o===s.status?' selected':'')+'>'+o+'</option>'}).join('')+'</select>':'')+'<button class="btn sec" id="rg">Cari</button>'+(U.role==='REPORTER'?'':'<button class="btn sec" id="rx">Unduh Excel</button><button class="btn sec" id="rpdf">Unduh PDF</button>')+'<button class="btn" id="ra">+ Buat laporan</button></div>'+(t==='meter'?'<div id="mstat"></div>':'')+'<div id="rl"><div class="sk" style="height:84px"></div><div class="sk" style="height:84px;margin-top:10px"></div><div class="sk" style="height:84px;margin-top:10px"></div></div>';
- function load(){s.q=$('rq').value;s.from=$('rf').value;s.to=$('rt').value;s.status=$('rs')?$('rs').value:'';
+ function load(){if(!$('rq')||!$('rl'))return;s.q=$('rq').value;s.from=$('rf').value;s.to=$('rt').value;s.status=$('rs')?$('rs').value:'';
   api('rep_list',{type:t,q:s.q,from:s.from,to:s.to,status:s.status,page:s.page}).then(function(r){
-   $('rl').className='';$('rl').innerHTML=r.items.length?'<div class="scroll cards"><table class="rt"><tr><th>No. Laporan</th><th>Waktu</th><th>Ringkasan</th><th>Pelapor</th><th>Aksi</th></tr>'+r.items.map(function(x){return '<tr><td data-l="No. laporan">'+esc(x.id)+'</td><td data-l="Waktu">'+dt(x.createdAt)+'</td><td class="sm">'+sum(t,x)+'</td><td data-l="Pelapor">'+esc(x.reporter)+'</td><td class="act"><button class="btn sec" data-d="'+x.id+'">Lihat detail</button></td></tr>'}).join('')+'</table></div><div class="pg"><button class="btn sec" id="pp"'+(r.page<2?' disabled':'')+'>‹</button> Hal. '+r.page+' / '+Math.ceil(r.total/r.size)+' ('+r.total+') <button class="btn sec" id="pn"'+(r.page*r.size>=r.total?' disabled':'')+'>›</button></div>':'<div class="empty"><b>Belum ada laporan</b>Ubah filter pencarian atau klik "+ Buat laporan" untuk mulai mencatat.</div>';
+   if(!$('rl'))return;$('rl').className='';$('rl').innerHTML=r.items.length?'<div class="scroll cards"><table class="rt"><tr><th>No. Laporan</th><th>Waktu</th><th>Ringkasan</th><th>Pelapor</th><th>Aksi</th></tr>'+r.items.map(function(x){return '<tr><td data-l="No. laporan">'+esc(x.id)+'</td><td data-l="Waktu">'+dt(x.createdAt)+'</td><td class="sm">'+sum(t,x)+'</td><td data-l="Pelapor">'+esc(x.reporter)+'</td><td class="act"><button class="btn sec" data-d="'+x.id+'">Lihat detail</button></td></tr>'}).join('')+'</table></div><div class="pg"><button class="btn sec" id="pp"'+(r.page<2?' disabled':'')+'>‹</button> Hal. '+r.page+' / '+Math.ceil(r.total/r.size)+' ('+r.total+') <button class="btn sec" id="pn"'+(r.page*r.size>=r.total?' disabled':'')+'>›</button></div>':'<div class="empty"><b>Belum ada laporan</b>Ubah filter pencarian atau klik "+ Buat laporan" untuk mulai mencatat.</div>';
    document.querySelectorAll('[data-d]').forEach(function(b){b.onclick=function(){detail(b.dataset.d,load)}});
-   if($('pp')){$('pp').onclick=function(){s.page--;load()};$('pn').onclick=function(){s.page++;load()}}}).catch(function(x){$('rl').className='empty';$('rl').innerHTML=esc(x.message)+'<br><br><button class="btn" id="rr">Coba lagi</button>';$('rr').onclick=load})}
+   if($('pp')){$('pp').onclick=function(){s.page--;load()};$('pn').onclick=function(){s.page++;load()}}}).catch(function(x){if(!$('rl'))return;$('rl').className='empty';$('rl').innerHTML=esc(x.message)+'<br><br><button class="btn" id="rr">Coba lagi</button>';$('rr').onclick=load})}
  $('rg').onclick=function(){s.page=1;load()};$('ra').onclick=function(){repForm(t,null,load)};if($('rx'))$('rx').onclick=function(){exportXls(t)};if($('rpdf'))$('rpdf').onclick=function(){exportXls(t,'pdf')};if(t==='meter')meterPanel();fabMove();load()}
 
 
