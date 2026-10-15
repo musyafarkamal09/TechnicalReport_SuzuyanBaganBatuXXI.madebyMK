@@ -17,4 +17,5 @@
 <nav id="tabs" aria-label="Menu utama"></nav></div>
 <div id="npanel" class="hidden" role="dialog" aria-label="Notifikasi"></div><div id="modal" class="hidden"><div class="mbox" id="mbox"></div></div><div id="toast" role="status"></div>
 <script>window.addEventListener("load",function(){var B="https://cdnjs.cloudflare.com/ajax/libs/",L=[B+"xlsx/0.18.5/xlsx.full.min.js",B+"jspdf/2.5.1/jspdf.umd.min.js",B+"jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js",B+"pdf.js/3.11.174/pdf.min.js",B+"exceljs/4.4.0/exceljs.min.js"];L.forEach(function(u){var e=document.createElement("script");e.src=u;e.async=false;if(u.indexOf("pdf.min.js")>0)e.onload=function(){if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc=B+"pdf.js/3.11.174/pdf.worker.min.js"};document.head.appendChild(e)})});</script>
-<script src="app.js?v=56" defer></script></body></html>
+<script>if("serviceWorker"in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});</script>
+<script src="app.js?v=58" defer></script></body></html>

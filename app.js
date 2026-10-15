@@ -32,7 +32,7 @@ function normU(u){u=u&&u.user?u.user:(u||{});var o=Object.assign({},u);o.name=u.
 function conn(s){$('conn').textContent=s;$('conn').className=/gagal/i.test(s)?'bad':''}
 function uuid(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2)}
 
-function api(a,p){
+function api0(a,p){
  p=p||{};var qt=p.quiet,qn=qt?function(){}:conn;delete p.quiet;p.action=a;p.token=TOKEN;qn('Memuat data...');
  if(navigator.onLine===false){qn('Gagal terhubung');return Promise.reject(new Error('Tidak ada koneksi internet. Periksa jaringan Anda lalu coba lagi.'))}
  var ac=window.AbortController?new AbortController():null,to=ac?setTimeout(function(){ac.abort()},a==='photo_save'||a==='rep_zip'||a==='rep_export'||a==='store_save'||a==='store_get'?120000:45000):0;
@@ -42,6 +42,19 @@ function api(a,p){
   if(j.ok)return j.data;
   if(TOKEN&&a!=='login'&&(j.code==='AUTH'||/sesi.*(berakhir|habis|tidak valid)|token|kedaluwarsa|expired/i.test(j.message||''))){clearSess();showLogin();$('lerr').textContent='Sesi ditolak server (aksi: '+a+', kode: '+(j.code||'-')+', pesan: '+(j.message||'-')+'). Silakan login lagi.'}
   throw new Error(j.message||'Gagal')});
+}
+
+/* Cache baca singkat (60 dtk): pindah halaman/kembali ke dashboard tidak memanggil server lagi. Dikosongkan otomatis setiap ada simpan/hapus/login/logout. */
+var RC={},RCG=0,RCT=60000,RCA=['dashboard','ats_list','ann_list','gloss_list','rep_list','filmrep_list','store_list','usr_list','team'];
+function rcClone(v){return v===undefined?v:JSON.parse(JSON.stringify(v))}
+function api(a,p){
+ if(RCA.indexOf(a)<0)return api0(a,p).then(function(d){if(/_(save|del)$|^(changepw|usr_reset|photo_done|login|logout)$/.test(a)){RC={};RCG++}return d});
+ var q=Object.assign({},p||{});delete q.quiet;var k=a+'|'+JSON.stringify(q),e=RC[k],g=RCG;
+ if(e&&e.pr)return e.pr.then(rcClone);
+ if(e&&Date.now()-e.t<RCT)return Promise.resolve(rcClone(e.v));
+ var pr=api0(a,p).then(function(d){if(g===RCG)RC[k]={t:Date.now(),v:rcClone(d)};return d},function(er){if(RC[k]&&RC[k].pr)delete RC[k];throw er});
+ RC[k]={pr:pr.then(function(d){return d}),t:0};
+ return pr;
 }
 var IMGC={},IMGQ=[],IMGB=0,IMGW=0;
 function imgSrc(u){if(u&&typeof u==='object')u=u.url||u.dataUrl||u.data||(u.b64?'data:'+(u.mime||'image/jpeg')+';base64,'+u.b64:'');u=String(u||'');if(!u)return '';if(/^(data:|https?:)/i.test(u))return u;return 'data:image/jpeg;base64,'+u}
